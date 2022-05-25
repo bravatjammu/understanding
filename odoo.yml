@@ -1,0 +1,81 @@
+---
+  - name: Install OpenMRS
+    become: yes
+    hosts: all
+    vars:
+      - odoo_git_repo: https://github.com/odoo/odoo.git
+      - odoo_bin_directory: /home/devops/odoo
+    tasks:
+      - name: update apt repo and cache
+        apt:
+          update_cache: yes 
+
+      - name: clone a odoo directory
+        ansible.builtin.git:
+          repo: "{{ odoo_git_repo }}"
+          dest: "{{ odoo_bin_directory }}"
+          clone: yes
+          update: no
+
+      - name: "Install packages"
+        ansible.builtin.apt:
+          name: "{{ item }}"
+          state: present
+        with_items:
+          - python3-pip
+          - postgresql
+          - postgresql-client
+
+      - name: Run the equivalent of "apt-get update" as a separate step
+        apt:
+          update_cache: yes
+      
+      - name: Install python
+        apt: name=python3 state=present
+      
+      - name: Install python3-pip
+        apt: name=python3-pip state=present          
+      
+      
+      - name: Install python dev modules
+        apt: name={{ item }} state=present
+        with_items:
+        - libxml2-dev
+        - libxslt1-dev
+        - libldap2-dev
+        - libsasl2-dev
+        - libtiff5-dev
+        - libjpeg8-dev
+        - libopenjp2-7-dev
+        - zlib1g-dev
+        - libfreetype6-dev
+        - liblcms2-dev
+        - libwebp-dev
+        - libharfbuzz-dev
+        - libfribidi-dev
+        - libxcb1-dev
+        - libpq-dev
+
+      - name: Install setuptools, wheel python package
+        pip:
+          name:
+            - setuptools
+            - wheel
+          chdir: "{{ odoo_bin_directory }}"
+      
+      - name: Install specified python requirements
+        pip:
+          requirements: "{{ odoo_bin_directory }}"/requirements.txt 
+
+      - name: install nodejs and npm
+        ansible.builtin.apt:
+          name: "{{ item }}"  
+          state: present
+        with_items:
+          - nodejs
+          - npm
+      
+      - name: executing odoo
+        ansible.builtin.shell:
+          chdir: "{{ odoo_bin_directory }}/"
+          cmd: python3 odoo-bin --addons-path=addons -d mydb &
